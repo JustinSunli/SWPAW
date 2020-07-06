@@ -1,11 +1,19 @@
 # SWPAW
 **S**olid**W**orks **P**DM **A**dd-In **W**rapper
 
-A wrapper to create SolidWorks PDM add-ins in any language
+A wrapper making possible to create SolidWorks Professional PDM add-ins in any programming language, including scripting languages.
+
+## Why
+Actually I developed this PDM Add-In for my own prototype programming. After a short time it turned out that it is also suitable for everyday use. That's why I decided to make it available to the public to allow every PDM administrator developing own add-ins in the preferred language.
 
 ## Workflow
+Before the script is executed, a set of default information for the executed event will be created and given to the script. Simple evaluations are possible without having access to the PDM-API. Further information can be collected via SQL and PDM-API. A prerequisite to use the PDM-API is that the chosen language supports [COM](https://en.wikipedia.org/wiki/Component_Object_Model).
+
 ![](http://bii.erppdm.com/images/Ulf-Dirk%20Stockburger_bii_pdm_add-in.svg)
 [Further information about this project](http://bii.erppdm.com/BiIUniversalExistingFunctionalityLong.html "Further Information")
+
+## Limitations
+It is important to know that for time-critical add-ins or actions that cannot be executed outside the current thread, programming in .NET or C++ cannot be avoided. Nevertheless, there are a lot of tasks that can also be implemented without .NET or C++ knowledge. And this, from my point of view, with less code in a short time. The prerequisite is that you master your chosen language.
 
 ## Minimum Prerequisites
 - C# 6 
@@ -13,7 +21,28 @@ A wrapper to create SolidWorks PDM add-ins in any language
 - SolidWorks Enterprise PDM 2014 SP0
 
 ## Getting Started
+
+**.NET 2.0**
 - Add the EPDM **Interop.epdm.dll/Runtime Version: v2.0.50727** to the references.
+- Comment out the following in **SWPAWSourceCode\SWPAW.cs**
+
+  **using EdmLib;**
+  
+  **public void OnCmd(ref EdmCmd poCmd, ref Array ppoData)**
+  
+  **System.Array user8Groups = null;**
+
+**.NET 4.0**
+- Add the EPDM **EPDM.Interop.epdm.dll/Runtime Version: v4.0.30319** to the references.
+- Comment out the following in **SWPAWSourceCode\SWPAW.cs**
+
+  **using EPDM.Interop.epdm;**
+
+  **public void OnCmd(ref EdmCmd poCmd, ref file mdData[] ppoData)**
+  
+  **object[] user8Groups = null;**
+
+Both versions
 - Sign the assembly. 
 - Compile the add-in.
 - Create the user environment variable **SWPAW.ini** and assign the full filename to it.
@@ -81,5 +110,44 @@ _search.SetToken(1, 1)
 _searchResult := _search.GetFirstResult()
 while(_searchResult){
 	_searchResult := _search.GetNextResult()
+}
+```
+
+## How to run scripts in AutoHotkey
+
+To work correctly executed scripts have to return an **ErrorLevel** for the evaluation in AutoHotkey. All integers except 0 are errors.
+
+- Starts a VBScript and waits for its completion. To return an **ErrorLevel** it ends with **WScript.Quit(0)**. 
+```
+cscript := "C:\Windows\System32\cscript.exe"
+vbscript := "C:\SWPAW\VBS\Demo.vbs"	
+RunWait, %cscript% %vbscript%,, Hide UseErrorLevel, scriptPid
+```
+- Starts a batch script and waits for its completion. To return an **ErrorLevel** it ends with **Exit 0**. 
+```
+batchscript := "C:\SWPAW\BAT\tmp.bat"
+RunWait, %batchscript%,, Show UseErrorLevel, scriptPid
+```
+
+The calling of scripts and programs always follows the above pattern.
+
+- After completion of the script, you can evaluate the **ErrorLevel** and handle errors. Error code and error message will be passed to SWPAW.
+```
+if(ErrorLevel != 0)
+{
+	errorCode := ErrorLevel
+	if(errorCode = 1)
+	{
+		errorMsg := "Error 1 in script."
+	}
+	else if(errorCode = 2)
+	{
+		errorMsg := "Error 2 in script."
+	}		
+	else
+	{
+		errorMsg := "Unknown error " . errorCode . " in script."		
+	}		
+	return		
 }
 ```
